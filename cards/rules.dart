@@ -4,7 +4,6 @@ import '../ai.dart';
 import '../card.dart';
 import '../table.dart';
 import '../cards/creepers.dart';
-import '../cards/keepers.dart';
 
 abstract class NewRuleCard extends Card {
   NewRuleCard();
@@ -12,12 +11,12 @@ abstract class NewRuleCard extends Card {
   bool get isBasicRule => false;
 
   void play(Table table, Player player) {
-    NewRuleCard/*?*/ oldCard = findOldRule(table);
+    NewRuleCard? oldCard = findOldRule(table);
     replaceCard(table, oldCard);
     table.checkpoint();
   }
 
-  NewRuleCard/*?*/ findOldRule(Table table) {
+  NewRuleCard? findOldRule(Table table) {
     List<NewRuleCard> cards = table.rules.where((NewRuleCard card) => card.runtimeType == this.runtimeType).toList();
     if (cards.length > 1) {
       GameOver.terminate(StateError('Rules had multiple ${this.runtimeType} cards: $cards'));
@@ -27,7 +26,7 @@ abstract class NewRuleCard extends Card {
     return cards.single;
   }
 
-  void replaceCard(Table table, covariant NewRuleCard oldRule) {
+  void replaceCard(Table table, covariant NewRuleCard? oldRule) {
     if (oldRule != null) {
       table.rules.remove(oldRule);
       if (!oldRule.isBasicRule) {
@@ -61,15 +60,15 @@ class DrawRule extends NewRuleCard {
   String get name => "Draw $_n";
 
   bool canDraw(Table table) {
-    return table.drawnThisTurn < value(table);
+    return table.drawnThisTurn! < value(table);
   }
 
   bool canPlay(Table table) {
-    return table.drawnThisTurn >= value(table) || (table.deck.isEmpty && table.discard.isEmpty);
+    return table.drawnThisTurn! >= value(table) || (table.deck.isEmpty && table.discard.isEmpty);
   }
 
   void turnEnd(Table table) {
-    if ((table.drawnThisTurn < value(table)) && (!(table.deck.isEmpty && table.discard.isEmpty))) {
+    if ((table.drawnThisTurn! < value(table)) && (!(table.deck.isEmpty && table.discard.isEmpty))) {
       GameOver.terminate(RuleViolation('${table.players.first.ai.name} did not draw sufficient cards on their turn (drew ${table.drawnThisTurn}, needed to draw ${value(table)}).', table.players.first.ai));
     }
   }
@@ -90,11 +89,11 @@ class PlayRule extends NewRuleCard {
   String get name => "Play ${all ? "All" : _n}";
 
   bool canPlay(Table table) {
-    return all || table.playedThisTurn < value(table);
+    return all || table.playedThisTurn! < value(table);
   }
 
   void turnEnd(Table table) {
-    if ((all || table.playedThisTurn < value(table)) && (table.players.first.hands.first.isNotEmpty)) {
+    if ((all || table.playedThisTurn! < value(table)) && (table.players.first.hands!.first.isNotEmpty)) {
       GameOver.terminate(RuleViolation('${table.players.first.ai.name} did not play sufficient cards on their turn (played ${table.playedThisTurn}, needed to play ${all ? "all" : value(table)}).', table.players.first.ai));
     }
   }
@@ -109,11 +108,11 @@ class HandLimitRule extends NewRuleCard {
 
   String get name => "Hand Limit $_n";
 
-  bool shouldDiscardCardFromHand(Table table, Player thisPlayer) => thisPlayer.hands.first.length > value(table);
+  bool shouldDiscardCardFromHand(Table table, Player thisPlayer) => thisPlayer.hands!.first.length > value(table);
 
   void checkLimits(Table table, Player thisPlayer) {
-    if (thisPlayer.hands.single.length > value(table)) {
-      GameOver.terminate(RuleViolation('${thisPlayer.ai.name} did not correctly discard cards during the complying-with-limits phase (hand size ${thisPlayer.hands.single.length}, hand limit ${value(table)}).', thisPlayer.ai));
+    if (thisPlayer.hands!.single.length > value(table)) {
+      GameOver.terminate(RuleViolation('${thisPlayer.ai.name} did not correctly discard cards during the complying-with-limits phase (hand size ${thisPlayer.hands!.single.length}, hand limit ${value(table)}).', thisPlayer.ai));
     }
   }
 }
@@ -143,7 +142,7 @@ class NoHandBonus extends NewRuleCard {
   void turnStart(Table table) {
     int n = table.interpretNumeral(3);
     final Player player = table.players.first;
-    if (player.hands.single.isEmpty) {
+    if (player.hands!.single.isEmpty) {
       table.log(this, '$player drawing $n cards for $name.'); // TODO: plural
       int count = 0;
       player.ai.drawBonusCards(n, Game(
@@ -154,7 +153,7 @@ class NoHandBonus extends NewRuleCard {
           Card card = table.drawCard(player, source);
           if (card is! CreeperCard) {
             count += 1;
-            player.hands.single.add(card);
+            player.hands!.single.add(card);
           }
           table.checkpoint();
           return card;
@@ -175,7 +174,7 @@ class ReinterpretNumeral extends NewRuleCard {
   final int oldNumber;
   final int newNumber;
 
-  NewRuleCard/*?*/ findOldRule(Table table) {
+  NewRuleCard? findOldRule(Table table) {
     List<NewRuleCard> cards = table.findRulesOf<ReinterpretNumeral>().where((ReinterpretNumeral card) => card.oldNumber == oldNumber).toList();
     if (cards.length > 1) {
       GameOver.terminate(StateError('Rules had multiple ReinterpretNumeral($oldNumber) cards: $cards'));

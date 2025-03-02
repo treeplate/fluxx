@@ -5,16 +5,15 @@ import 'dart:io';
 
 import 'ai.dart';
 import 'card.dart';
-import 'cards/actions.dart';
 import 'cards/creepers.dart';
 import 'cards/goals.dart';
 import 'cards/keepers.dart';
 import 'cards/rules.dart';
 
-typedef GameOverHandler = void Function(Exception exception, StackTrace stack);
+typedef GameOverHandler = void Function(Object exception, StackTrace stack);
 
 class GameOver implements Exception {
-  static GameOverHandler _handler;
+  static late GameOverHandler _handler;
 
   static void terminate(Object exception) {
     _handler(exception, StackTrace.current);
@@ -42,7 +41,7 @@ class RuleViolation implements GameOver {
 
 class _PlayerState extends PlayerState {
   const _PlayerState(this.hands, this.keepers, this.creepers, this.ai);
-  final List<Set<Card>>/*?*/ hands;
+  final List<Set<Card>>? hands;
   final Set<KeeperCard> keepers;
   final Set<CreeperCard> creepers;
   final AI ai;
@@ -52,13 +51,13 @@ class _PlayerState extends PlayerState {
 
 class _GameState extends GameState {
   const _GameState({
-    this.thisPlayer, this.players,
-    this.discard, this.rules,
-    this.drawnThisTurn, this.playedThisTurn,
-    this.drawRule, this.playRule,
-    this.canDrawFromBottomOfDiscard,
-    this.deckEmpty,
-    this.goal,
+    required this.thisPlayer, required this.players,
+    required this.discard, required this.rules,
+    required this.drawnThisTurn, required this.playedThisTurn,
+    required this.drawRule, required this.playRule,
+    required this.canDrawFromBottomOfDiscard,
+    required this.deckEmpty,
+    required this.goal,
   });
 
   final PlayerState thisPlayer;
@@ -71,7 +70,7 @@ class _GameState extends GameState {
   final int playRule;
   final bool canDrawFromBottomOfDiscard;
   final bool deckEmpty;
-  final GoalCard goal;
+  final GoalCard? goal;
 }
 
 typedef DrawCardHandler = Card Function(CardSource source);
@@ -85,41 +84,41 @@ class Game extends GameInterface {
     this.playFromHandHandler,
     this.discardFromHandHandler,
     this.discardFromKeepersHandler,
-    this.stateHandler,
+    required this.stateHandler,
   });
 
-  final DrawCardHandler/*?*/ drawHandler;
-  final UseCardHandler/*?*/ playFromHandHandler;
-  final UseCardHandler/*?*/ discardFromHandHandler;
-  final UseKeeperCardHandler/*?*/ discardFromKeepersHandler;
+  final DrawCardHandler? drawHandler;
+  final UseCardHandler? playFromHandHandler;
+  final UseCardHandler? discardFromHandHandler;
+  final UseKeeperCardHandler? discardFromKeepersHandler;
   final StateHandler stateHandler;
 
   Card draw({ CardSource source = CardSource.deck }) {
     if (drawHandler == null) {
       GameOver.terminate(RuleViolation('${state.players.first.name} tried to draw a card when it was not approriate.', state.players.first.ai));
     }
-    return drawHandler(source);
+    return drawHandler!(source);
   }
 
   void playFromHand(Card card) {
     if (playFromHandHandler == null) {
       GameOver.terminate(RuleViolation('${state.players.first.name} tried to play a card ($card) when it was not approriate.', state.players.first.ai));
     }
-    playFromHandHandler(card);
+    playFromHandHandler!(card);
   }
 
   void discardFromHand(Card card) {
     if (discardFromHandHandler == null) {
       GameOver.terminate(RuleViolation('${state.players.first.name} tried to discard a card from their hand ($card) when it was not approriate.', state.players.first.ai));
     }
-    discardFromHandHandler(card);
+    discardFromHandHandler!(card);
   }
 
   void discardFromKeepers(KeeperCard card) {
     if (discardFromKeepersHandler == null) {
       GameOver.terminate(RuleViolation('${state.players.first.name} tried to discard a keeper ($card) when it was not approriate.', state.players.first.ai));
     }
-    discardFromKeepersHandler(card);
+    discardFromKeepersHandler!(card);
   }
 
   GameState get state => stateHandler();
@@ -127,7 +126,7 @@ class Game extends GameInterface {
 
 class Player {
   Player(this.ai);
-  final List<Set<Card>>/*?*/ hands = [<Card>{}];
+  final List<Set<Card>>? hands = [<Card>{}];
   final Set<KeeperCard> keepers = <KeeperCard>{};
   final Set<CreeperCard> creepers = <CreeperCard>{};
   final AI ai;
@@ -142,7 +141,7 @@ class Player {
 
   _PlayerState toPlayerState(bool active) {
     return _PlayerState(
-      active ? hands.map((x) => x.toSet()).toList() : null,
+      active ? hands!.map((x) => x.toSet()).toList() : null,
       keepers.toSet(),
       creepers.toSet(),
       ai,
@@ -155,10 +154,10 @@ class Player {
 class Table {
   Table._(this.random, this.deck, this.showGame);
 
-  static void run(math.Random random, { List<Card> deck, List<AI> players = const <AI>[], bool showGame = true }) {
+  static void run(math.Random random, { required List<Card> deck, List<AI> players = const <AI>[], bool showGame = true }) {
     Table table = Table._(random, deck, showGame);
     table.players.addAll(players.map((AI ai) => Player(ai)));
-    GameOver._handler = (Exception e, StackTrace stack) {
+    GameOver._handler = (Object e, StackTrace stack) {
       if (e is RuleViolation) {
         stderr.writeln('${e.error}');
         stderr.writeln('${e.ai.name} loses, everyone else wins.');
@@ -184,15 +183,15 @@ class Table {
   final math.Random random;
 
   final List<Player> players = [];
-  int playedThisTurn;
-  int drawnThisTurn;
+  int? playedThisTurn;
+  int? drawnThisTurn;
   final bool showGame;
 
   static final Set<NewRuleCard> basicRules = {DrawRule(1), PlayRule(1)};
   final List<NewRuleCard> rules = basicRules.toList();
   final List<Card> deck;
   final List<Card> discard = [];
-  GoalCard goal;
+  GoalCard? goal;
 
   static const int defaultHandSize = 3;
 
@@ -216,7 +215,7 @@ class Table {
           }
           card = drawCard(player, CardSource.deck);
           if (card is! CreeperCard) {
-            player.hands.first.add(card);
+            player.hands!.first.add(card);
           }
         } while (card is CreeperCard);
       }
@@ -225,7 +224,7 @@ class Table {
       log(this, '');
       log(this, '${players.first.ai.name}\'s turn.');
       log(this, 'Deck size: ${deck.length}; Discard size: ${discard.length}; Draw $drawRule, Play $playRule, Hand Limit ${handLimitRule == -1 ? "unbounded" : handLimitRule}, Keeper Limit ${keeperLimitRule == -1 ? "unbounded" : keeperLimitRule}');
-      log(this, 'Hand: ${players.first.hands.single.isEmpty ? "<empty>" : players.first.hands.single.join(", ")}');
+      log(this, 'Hand: ${players.first.hands!.single.isEmpty ? "<empty>" : players.first.hands!.single.join(", ")}');
       log(this, 'Keepers: ${players.first.keepers.isEmpty ? "<none>" : players.first.keepers.join(", ")}');
       log(this, 'Creepers: ${players.first.creepers.isEmpty ? "<none>" : players.first.creepers.join(", ")}');
       log(this, 'Rules: ${rules.join(", ")}');
@@ -241,8 +240,8 @@ class Table {
       players: players.map<PlayerState>((Player player) => player.toPlayerState(false)).toList(),
       discard: discard.toList(),
       rules: rules.toList(),
-      drawnThisTurn: drawnThisTurn,
-      playedThisTurn: playedThisTurn,
+      drawnThisTurn: drawnThisTurn!,
+      playedThisTurn: playedThisTurn!,
       drawRule: drawRule,
       playRule: playRule,
       canDrawFromBottomOfDiscard: canDrawFromBottomOfDiscard,
@@ -268,8 +267,8 @@ class Table {
         }
         Card card = drawCard(player, source);
         if (card is! CreeperCard) {
-          player.hands.first.add(card);
-          drawnThisTurn += 1;
+          player.hands!.first.add(card);
+          drawnThisTurn = drawnThisTurn! + 1;
         }
         checkpoint();
         return card;
@@ -280,7 +279,7 @@ class Table {
             GameOver.terminate(RuleViolation('${player.ai.name} cannot play at this time ($rule says no).', player.ai));
           }
         }
-        playedThisTurn += 1;
+        playedThisTurn = playedThisTurn! + 1;
         playCard(player, card);
       },
       stateHandler: () => stateForPlayer(player),
@@ -336,7 +335,7 @@ class Table {
   }
 
   void playCard(Player player, Card card) {
-    if (!player.hands.last.remove(card)) {
+    if (!player.hands!.last.remove(card)) {
       GameOver.terminate(RuleViolation('${player.ai.name} tried to play card $card which was not in their hand.', player.ai));
     }
     log(this, '${player.ai.name} played $card from their hand.');
@@ -347,7 +346,7 @@ class Table {
     // TODO: multigoal will need this changed
     if (goal != null) {
       log(this, 'Previous goal, $goal, discarded.');
-      discard.add(goal);
+      discard.add(goal!);
     }
     goal = card;
     log(this, 'Goal changed to $goal.');
@@ -363,7 +362,7 @@ class Table {
   void checkpoint() {
     players.skip(1).forEach(enforceLimits);
     if (goal != null) {
-      List<Player> winners = goal.findWinners(this).toList();
+      List<Player> winners = goal!.findWinners(this).toList();
       List<CreeperCard> creepers = players
         .expand<CreeperCard>((Player player) => player.creepers)
         .toList();
@@ -376,10 +375,10 @@ class Table {
         return false;
       });
       if (winners.length == 1) {
-        GameOver.terminate(_GoalWin(winners.single.ai, goal));
+        GameOver.terminate(_GoalWin(winners.single.ai, goal!));
       }
     }
-  }
+    }
 
   void enforceLimits(Player player) {
     GameInterface gameForPlayer = Game(
@@ -422,7 +421,7 @@ class Table {
   }
 
   void discardHandCard(Player player, Card card) {
-    if (player.hands.first.remove(card)) {
+    if (player.hands!.first.remove(card)) {
       log(this, '${player.ai.name} is discarding $card from their hand to comply with hand limits.');
       discard.add(card);
     } else {
@@ -443,16 +442,16 @@ class Table {
     return rules.where((NewRuleCard card) => card is T).cast<T>();
   }
 
-  T/*?*/ findRuleOf<T>() {
+  T? findRuleOf<T>() {
     List<T> subrules = findRulesOf<T>().toList();
     if (subrules.isEmpty)
       return null;
     return subrules.single;
   }
 
-  int get drawRule => findRuleOf<DrawRule>()/*!*/.value(this);
+  int get drawRule => findRuleOf<DrawRule>()!.value(this);
 
-  int get playRule => findRuleOf<PlayRule>()/*!*/.value(this);
+  int get playRule => findRuleOf<PlayRule>()!.value(this);
 
   int get handLimitRule => findRuleOf<HandLimitRule>()?.value(this) ?? -1;
 

@@ -7,7 +7,7 @@ import 'cards/rules.dart';
 
 abstract class PlayerState {
   const PlayerState();
-  List<Set<Card>>/*?*/ get hands; // null when the information is unknown
+  List<Set<Card>>? get hands; // null when the information is unknown
   Set<KeeperCard> get keepers;
   Set<CreeperCard> get creepers;
   AI get ai;
@@ -39,7 +39,7 @@ abstract class GameState {
   // TODO: put the other limits here too and remove them from complyWithLimits
   bool get canDrawFromBottomOfDiscard;
 
-  GoalCard get goal;
+  GoalCard? get goal;
 
   bool get deckEmpty;
 }
@@ -47,7 +47,7 @@ abstract class GameState {
 abstract class GameInterface {
   GameInterface();
 
-  Card/*?*/ draw({ CardSource source = CardSource.deck });
+  Card draw({ CardSource source = CardSource.deck });
   void playFromHand(Card card); // will throw if you still need to draw
   void discardFromHand(Card card);
   void discardFromKeepers(KeeperCard card);
@@ -77,7 +77,7 @@ class AI {
           continue;
         }
       }
-      if (((state.playedThisTurn < state.playRule) || state.playRule == 0) && (state.thisPlayer.hands.single.isNotEmpty)) {
+      if (((state.playedThisTurn < state.playRule) || state.playRule == 0) && (state.thisPlayer.hands!.single.isNotEmpty)) {
         playCard(game);
         continue;
       }
@@ -85,26 +85,27 @@ class AI {
     } while (true);
   }
 
-  Card/*?*/ drawCard(GameInterface game) {
+  Card? drawCard(GameInterface game) {
     while (!game.state.deckEmpty) {
       Card card = game.draw();
       if (card is! CreeperCard) {
         return card;
       }
     }
+    return null;
   }
 
   void playCard(GameInterface game) {
-    game.playFromHand(game.state.thisPlayer.hands.last.first);
+    game.playFromHand(game.state.thisPlayer.hands!.last.first);
   }
 
   void complyWithLimits(GameInterface game, int handLimit, int keeperLimit) {
-    while (handLimit >= 0 && game.state.thisPlayer.hands.first.length > handLimit) {
-      Card card = game.state.thisPlayer.hands.first.first;
+    while (handLimit >= 0 && game.state.thisPlayer.hands!.first.length > handLimit) {
+      Card card = game.state.thisPlayer.hands!.first.first;
       game.discardFromHand(card);
     }
     while (keeperLimit >= 0 && game.state.thisPlayer.keepers.length > keeperLimit) {
-      Card card = game.state.thisPlayer.keepers.first;
+      KeeperCard card = game.state.thisPlayer.keepers.first;
       game.state.thisPlayer.keepers.remove(card);
       game.discardFromKeepers(card);
     }
@@ -118,34 +119,34 @@ class AI {
     }
   }
 
-  KeeperCard/*?*/ chooseLivingKeeperForExtinction(GameInterface game) {
+  KeeperCard? chooseLivingKeeperForExtinction(GameInterface game) {
     return game.state.players
         .expand((PlayerState player) => player.keepers)
-        .cast<KeeperCard/*?*/>()
-        .firstWhere((KeeperCard card) => card.isAlive, orElse: () => null);
+        .cast<KeeperCard?>()
+        .firstWhere((KeeperCard? card) => card != null && card.isAlive, orElse: () => null);
   }
 
-  Card/*?*/ chooseCardForLetsDoThatAgain(GameInterface game) {
-    return game.state.discard.cast<Card/*?*/>().firstWhere((Card card) {
+  Card? chooseCardForLetsDoThatAgain(GameInterface game) {
+    return game.state.discard.cast<Card?>().firstWhere((Card? card) {
       return card is ActionCard || card is NewRuleCard;
     }, orElse: () => null);
   }
 
-  KeeperCard/*?*/ chooseKeeperToSteal(GameInterface game) {
+  KeeperCard? chooseKeeperToSteal(GameInterface game) {
     GameState state = game.state;
     return state.players
         .where((PlayerState player) => player.ai != this)
         .expand((PlayerState player) => player.keepers)
-        .cast<KeeperCard/*?*/>()
-        .firstWhere((KeeperCard card) => true, orElse: () => null);
+        .cast<KeeperCard?>()
+        .firstWhere((KeeperCard? card) => true, orElse: () => null);
   }
 
-  List<Card/*?*/> chooseCardsForEverybodyGetsOne(GameInterface game) {
-    List<Card> cards = [];
-    for (PlayerState player in game.state.players) {
+  List<Card?> chooseCardsForEverybodyGetsOne(GameInterface game) {
+    List<Card?> cards = [];
+    for (PlayerState _ in game.state.players) {
       GameState state = game.state;
       if (!state.deckEmpty) {
-        cards.add(drawCard(game));
+        cards.add(drawCard(game)!);
       } else {
         cards.add(null);
       }
@@ -154,7 +155,7 @@ class AI {
   }
 
   Card chooseCardForTaxation(PlayerState taxer, GameInterface game) {
-    return game.state.thisPlayer.hands.first.first;
+    return game.state.thisPlayer.hands!.first.first;
   }
 
   ExchangeKeepersResult chooseCardsForExchangeKeepers(GameInterface game) {
@@ -163,7 +164,7 @@ class AI {
       state.players
         .where((PlayerState player) => player.ai != this)
         .expand((PlayerState player) => player.keepers)
-        .cast<KeeperCard/*?*/>()
+        .cast<KeeperCard>()
         .first,
       state.thisPlayer
         .keepers

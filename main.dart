@@ -1,12 +1,11 @@
 import 'dart:math' as math show Random;
-import 'dart:io';
 
 import 'table.dart';
 import 'ai.dart';
 import 'card.dart';
 import 'AIs/birch.dart';
 import 'AIs/random.dart';
-import 'AIs/anonymous_AI.dart';
+import 'AIs/hixie.dart';
 import 'cards/actions.dart';
 import 'cards/creepers.dart';
 import 'cards/goals.dart';
@@ -106,11 +105,11 @@ void main(List<String> args) {
     deck: ecoFluxx,
     //deck: testDeck,
     players: [
-      AI('First Card Alice'),
-      AI('First Card Bob'),
-      RandomAI('Charlie', math.Random(0)),
-      DaddyAI(),
-      Birch('Eli (Birch)'),
+      AI('First Card Apple'),
+      AI('First Card Banana'),
+      RandomAI('Charles', math.Random(0)),
+      HixieAI(),
+      Birch('Treeplate (Birch)'),
     ],
     showGame: args.isEmpty,
   );

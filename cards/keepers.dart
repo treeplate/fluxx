@@ -1,6 +1,5 @@
 import 'dart:core' hide print;
 
-import '../ai.dart';
 import '../card.dart';
 import '../table.dart';
 

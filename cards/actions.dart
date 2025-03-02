@@ -16,7 +16,7 @@ abstract class ActionCard extends Card { }
 class Extinction extends ActionCard {
   String get name => 'Extinction';
   void play(Table table, Player player) {
-    KeeperCard/*?*/ keeper = player.ai.chooseLivingKeeperForExtinction(Game(stateHandler: () => table.stateForPlayer(player)));
+    KeeperCard? keeper = player.ai.chooseLivingKeeperForExtinction(Game(stateHandler: () => table.stateForPlayer(player)));
     if (keeper != null && !keeper.isAlive) {
       GameOver.terminate(RuleViolation('$player chose non-living keeper for $name.', player.ai));
     }
@@ -46,7 +46,7 @@ class Extinction extends ActionCard {
 class LetsDoThatAgain extends ActionCard {
   String get name => 'Let\'s Do That Again';
   void play(Table table, Player player) {
-    Card card = player.ai.chooseCardForLetsDoThatAgain(Game(stateHandler: () => table.stateForPlayer(player)));
+    Card? card = player.ai.chooseCardForLetsDoThatAgain(Game(stateHandler: () => table.stateForPlayer(player)));
     if (card == null) {
       table.log(this, '$player chose no card.');
       if (table.discard.any((Card card) => card is ActionCard || card is NewRuleCard)) {
@@ -69,7 +69,7 @@ class LetsDoThatAgain extends ActionCard {
 class StealAKeeper extends ActionCard {
   String get name => 'Steal a Keeper';
   void play(Table table, Player player) {
-    KeeperCard keeper = player.ai.chooseKeeperToSteal(Game(stateHandler: () => table.stateForPlayer(player)));
+    KeeperCard? keeper = player.ai.chooseKeeperToSteal(Game(stateHandler: () => table.stateForPlayer(player)));
     if (keeper == null) {
       table.log(this, '$player chose no card.');
       for (Player otherPlayer in table.players) {
@@ -99,7 +99,7 @@ class EverybodyGetsOne extends ActionCard {
   String get name => 'Everybody Gets One';
   void play(Table table, Player player) {
     Set<Card> drawnCards = <Card>{};
-    List<Card/*?*/> cards = player.ai.chooseCardsForEverybodyGetsOne(Game(
+    List<Card?> cards = player.ai.chooseCardsForEverybodyGetsOne(Game(
       drawHandler: (CardSource source) {
         Card card = table.drawCard(player, source);
         if (card is! CreeperCard) {
@@ -115,7 +115,7 @@ class EverybodyGetsOne extends ActionCard {
     if (drawnCards.length < table.players.length && (table.deck.isNotEmpty || table.discard.isNotEmpty)) {
       GameOver.terminate(RuleViolation('$player drew too few cards for $name.', player.ai));
     }
-    Set<Card> assignedCards = cards.where((Card/*?*/ card) => card != null).toSet();
+    Set<Card> assignedCards = cards.whereType<Card>().toSet();
     if (assignedCards.length < drawnCards.length) {
       GameOver.terminate(RuleViolation('$player did not assign all drawn cards for $name.', player.ai));
     }
@@ -133,7 +133,7 @@ class EverybodyGetsOne extends ActionCard {
         table.log(this, '$player assigned no card to ${table.players[index]}');
       } else {
         table.log(this, '$player assigned ${cards[index]} to ${table.players[index]}');
-        table.players[index].hands.first.add(cards[index]);
+        table.players[index].hands!.first.add(cards[index]!);
       }
     }
     table.discard.add(this);
@@ -148,7 +148,7 @@ class Taxation extends ActionCard {
       if (otherPlayer == player) {
         continue;
       }
-      if (otherPlayer.hands.first.isEmpty) {
+      if (otherPlayer.hands!.first.isEmpty) {
         continue;
       }
       Card card = otherPlayer.ai.chooseCardForTaxation(
@@ -157,11 +157,11 @@ class Taxation extends ActionCard {
           stateHandler: () => table.stateForPlayer(otherPlayer),
         ),
       );
-      if (!otherPlayer.hands.first.contains(card)) {
+      if (!otherPlayer.hands!.first.contains(card)) {
         GameOver.terminate(RuleViolation('$otherPlayer failed: chose invalid card for $name.', player.ai));
       }
       table.log(this, '$otherPlayer pays $card to $player.');
-      player.hands.first.add(card);
+      player.hands!.first.add(card);
     }
     table.discard.add(this);
     table.checkpoint();
@@ -214,10 +214,10 @@ class RulesReset extends ActionCard {
 class DiscardAndDraw extends ActionCard {
   String get name => 'Discard & Draw';
   void play(Table table, Player player) {
-    int oldHandSize = player.hands.first.length;
+    int oldHandSize = player.hands!.first.length;
     if (oldHandSize > 0) {
-      table.discard.addAll(player.hands.first); // so we must be able to draw the right number of cards
-      player.hands.first.clear();
+      table.discard.addAll(player.hands!.first); // so we must be able to draw the right number of cards
+      player.hands!.first.clear();
       table.log(this, '$player discarding and drawing $oldHandSize cards for $name.'); // TODO: plural
       int count = 0;
       player.ai.drawBonusCards(oldHandSize, Game(
@@ -228,7 +228,7 @@ class DiscardAndDraw extends ActionCard {
           Card card = table.drawCard(player, source);
           if (card is! CreeperCard) {
             count += 1;
-            player.hands.first.add(card);
+            player.hands!.first.add(card);
           }
           return card;
         },
@@ -249,7 +249,7 @@ class Draw3Play2 extends ActionCard {
   String get name => "Draw 3 Play 2";
   void play(Table table, Player player) {
     int count = 0;
-    player.hands.add({});
+    player.hands!.add({});
     int three = table.interpretNumeral(3);
     player.ai.drawCardsForDNPM(three,
       Game(
@@ -260,7 +260,7 @@ class Draw3Play2 extends ActionCard {
           Card card = table.drawCard(player, source);
           if (card is! CreeperCard) {
             count += 1;
-            player.hands.last.add(card);
+            player.hands!.last.add(card);
           }
           return card;
         },
@@ -270,7 +270,7 @@ class Draw3Play2 extends ActionCard {
     int two = table.interpretNumeral(2);
     player.ai.playCardsForDNPM(two, Game(
         playFromHandHandler: (Card card) {
-          if (player.hands.last.contains(card)) {
+          if (player.hands!.last.contains(card)) {
             table.playCard(player, card);
             table.checkpoint();
           } else {
@@ -280,11 +280,11 @@ class Draw3Play2 extends ActionCard {
         stateHandler: () => table.stateForPlayer(player),
       ),
     );
-    if (player.hands.last.length != math.max(0, three - two)) {
-      GameOver.terminate(RuleViolation('${player.ai.name} played the wrong amount of cards for $name (m $two n $three played ${three-player.hands.last.length}).', player.ai));
+    if (player.hands!.last.length != math.max(0, three - two)) {
+      GameOver.terminate(RuleViolation('${player.ai.name} played the wrong amount of cards for $name (m $two n $three played ${three-player.hands!.last.length}).', player.ai));
     }
-    table.discard.addAll(player.hands.last);
-    player.hands.removeLast();
+    table.discard.addAll(player.hands!.last);
+    player.hands!.removeLast();
     table.discard.add(this);
     table.checkpoint();
   }
@@ -382,7 +382,7 @@ class Scavenger extends ActionCard {
   void play(Table table, Player player) {
     int indexOfKeeper = table.discard.lastIndexWhere((x) => x is KeeperCard);
     if (indexOfKeeper != -1) {
-      KeeperCard/*?*/ keeper = table.discard[indexOfKeeper];
+      KeeperCard? keeper = table.discard[indexOfKeeper] as KeeperCard;
       table.discard.removeAt(indexOfKeeper);
       table.log(this, "$player playing $keeper");
       keeper.play(table, player);
@@ -405,13 +405,13 @@ class TradeHands extends ActionCard {
     }
     Player otherPlayer = table.players[otherPlayerIndex];
     table.log(this, '${player.ai.name} trading hands with ${otherPlayer.ai.name}.');
-    if (player.hands.first.isEmpty && otherPlayer.hands.first.isNotEmpty) {
+    if (player.hands!.first.isEmpty && otherPlayer.hands!.first.isNotEmpty) {
       table.log(this, '${player.ai.name} got something for nothing.');
     }
-    Set<Card> oldPlayerHand = player.hands.removeAt(0);
-    Set<Card> oldOtherPlayerHand = otherPlayer.hands.removeAt(0);
-    player.hands.insert(0, oldOtherPlayerHand);
-    otherPlayer.hands.insert(0, oldPlayerHand);
+    Set<Card> oldPlayerHand = player.hands!.removeAt(0);
+    Set<Card> oldOtherPlayerHand = otherPlayer.hands!.removeAt(0);
+    player.hands!.insert(0, oldOtherPlayerHand);
+    otherPlayer.hands!.insert(0, oldPlayerHand);
     table.discard.add(this);
     table.checkpoint();
   }
